@@ -333,11 +333,11 @@ const G = {
   tricks: [],      // [int]
   totals: [],      // [int] running totals
   roundType: 'full',
+  maxCards: 13,
 };
 
 // ─── Round generation ─────────────────────────────────────────────────────────
-function genRounds(type, numPlayers) {
-  const max = Math.min(13, Math.floor(52 / numPlayers));
+function genRounds(type, max) {
   let up = [];
   if (type === 'odd') {
     for (let i = 1; i <= max; i += 2) up.push(i);
@@ -350,6 +350,10 @@ function genRounds(type, numPlayers) {
   }
   if (type === 'down') return [...up].reverse();
   return up; // 'up'
+}
+
+function defaultMax(numPlayers) {
+  return Math.min(13, Math.floor(52 / numPlayers));
 }
 
 // ─── Scoring ──────────────────────────────────────────────────────────────────
@@ -404,11 +408,21 @@ function renderSetup() {
 
     <div class="section-label">Round Style</div>
     <select class="round-select" id="rtype">
-      <option value="full" ${G.roundType==='full'?'selected':''}>Full (1 → 13 → 1)</option>
-      <option value="odd" ${G.roundType==='odd'?'selected':''}>Odd only (1, 3, 5 … 13 … 5, 3, 1)</option>
-      <option value="up" ${G.roundType==='up'?'selected':''}>Up only (1 → 13)</option>
-      <option value="down" ${G.roundType==='down'?'selected':''}>Down only (13 → 1)</option>
+      <option value="full" ${G.roundType==='full'?'selected':''}>Full (1 → max → 1)</option>
+      <option value="odd" ${G.roundType==='odd'?'selected':''}>Odd only (1, 3, 5 … max … 5, 3, 1)</option>
+      <option value="up" ${G.roundType==='up'?'selected':''}>Up only (1 → max)</option>
+      <option value="down" ${G.roundType==='down'?'selected':''}>Down only (max → 1)</option>
     </select>
+
+    <div class="section-label">Max Cards Per Round</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+      <button class="cnt-btn" id="maxdown" style="width:44px;height:44px;flex-shrink:0;">−</button>
+      <div style="flex:1;background:#1f2937;border:1.5px solid #374151;border-radius:10px;padding:12px;text-align:center;">
+        <span id="maxval" style="font-size:22px;font-weight:800;color:#f59e0b;">${G.maxCards}</span>
+        <span style="color:#6b7280;font-size:13px;"> cards</span>
+      </div>
+      <button class="cnt-btn" id="maxup" style="width:44px;height:44px;flex-shrink:0;">+</button>
+    </div>
 
     <div class="scoring-note">
       <strong>Exact bid:</strong> 3 pts × bid &nbsp;(bid 2, get 2 = 6)<br>
@@ -573,6 +587,11 @@ function syncInputs() {
   if (sel) G.roundType = sel.value;
 }
 
+function updateMaxDisplay() {
+  const el = document.getElementById('maxval');
+  if (el) el.textContent = G.maxCards;
+}
+
 function render() {
   const app = document.getElementById('app');
   const screens = { setup: renderSetup, bid: renderBid, tricks: renderTricks, results: renderResults, gameover: renderGameOver };
@@ -585,21 +604,34 @@ function bind() {
   document.getElementById('addp')?.addEventListener('click', () => {
     syncInputs();
     G.players.push('');
+    const activeCount = G.players.filter(p => p).length || G.players.length;
+    G.maxCards = defaultMax(activeCount + 1);
     render();
   });
 
   document.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => {
     syncInputs();
     G.players.splice(+b.dataset.rm, 1);
+    const activeCount = G.players.filter(p => p).length || G.players.length;
+    G.maxCards = defaultMax(activeCount);
     render();
   }));
+
+  document.getElementById('maxdown')?.addEventListener('click', () => {
+    syncInputs();
+    if (G.maxCards > 1) { G.maxCards--; updateMaxDisplay(); }
+  });
+  document.getElementById('maxup')?.addEventListener('click', () => {
+    syncInputs();
+    if (G.maxCards < 13) { G.maxCards++; updateMaxDisplay(); }
+  });
 
   document.getElementById('startbtn')?.addEventListener('click', () => {
     syncInputs();
     const names = G.players.filter(p => p);
     if (names.length < 2) { alert('Add at least 2 players!'); return; }
     G.players = names;
-    G.rounds = genRounds(G.roundType, names.length);
+    G.rounds = genRounds(G.roundType, G.maxCards);
     G.roundIndex = 0;
     G.dealerIndex = 0;
     G.bids = Array(names.length).fill(null);
@@ -671,7 +703,7 @@ function bind() {
 
   document.getElementById('sameplayers')?.addEventListener('click', () => {
     const names = [...G.players];
-    G.rounds = genRounds(G.roundType, names.length);
+    G.rounds = genRounds(G.roundType, G.maxCards);
     G.roundIndex = 0;
     G.dealerIndex = 0;
     G.bids = Array(names.length).fill(null);
