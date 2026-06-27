@@ -670,7 +670,7 @@ function reRenderTricks() {
   const ttEl = document.querySelector('.tricks-total');
   if (ttEl) {
     const remColor = rem === 0 ? 'ok' : rem < 0 ? 'over' : '';
-    ttEl.innerHTML = `<span class="${remColor}">${total}</span> / ${roundMax} tricks assigned${rem===0?' ✓':rem<0?' — too many!':\` — ${rem} remaining\`}`;
+    ttEl.innerHTML = `<span class="${remColor}">${total}</span> / ${roundMax} tricks assigned` + (rem===0 ? ' ✓' : rem<0 ? ' — too many!' : ` — ${rem} remaining`);
   }
 }
 
