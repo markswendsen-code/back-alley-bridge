@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Back Alley Bridge</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #111827;
+  color: #e5e7eb;
+  min-height: 100vh;
+}
+.screen {
+  width: 100%;
+  max-width: 420px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 32px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 26px;
+  font-weight: 800;
+  text-align: center;
+  color: #f59e0b;
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+.subtitle {
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+  margin-bottom: 28px;
+}
+/* ── Setup ── */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+.player-list { list-style: none; margin-bottom: 10px; }
+.player-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.player-item input {
+  flex: 1;
+  background: #1f2937;
+  border: 1.5px solid #374151;
+  border-radius: 10px;
+  padding: 13px 14px;
+  color: #f9fafb;
+  font-size: 16px;
+  outline: none;
+}
+.player-item input:focus { border-color: #f59e0b; }
+.remove-btn {
+  background: #1f2937;
+  color: #ef4444;
+  border: 1.5px solid #374151;
+  border-radius: 8px;
+  width: 40px; height: 40px;
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.add-player-btn {
+  width: 100%;
+  background: transparent;
+  border: 2px dashed #374151;
+  border-radius: 10px;
+  padding: 12px;
+  color: #6b7280;
+  font-size: 15px;
+  cursor: pointer;
+  margin-bottom: 24px;
+}
+.round-select {
+  width: 100%;
+  background: #1f2937;
+  border: 1.5px solid #374151;
+  border-radius: 10px;
+  padding: 13px 14px;
+  color: #f9fafb;
+  font-size: 15px;
+  margin-bottom: 24px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%236b7280' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 8l4.5 4.5L14.5 8'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+}
+.scoring-note {
+  background: #1f2937;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 24px;
+  color: #9ca3af;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.scoring-note strong { color: #f59e0b; }
+.btn-primary {
+  width: 100%;
+  background: #f59e0b;
+  color: #111827;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: auto;
+}
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-primary:active { opacity: 0.85; }
+.btn-secondary {
+  width: 100%;
+  background: #1f2937;
+  color: #d1d5db;
+  border: 1.5px solid #374151;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+}
+/* ── Round header ── */
+.round-header {
+  background: #1f2937;
+  border-radius: 14px;
+  padding: 14px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+.rh-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.6px; }
+.rh-num { font-size: 48px; font-weight: 900; color: #f59e0b; line-height: 1; }
+.rh-sub { font-size: 13px; color: #6b7280; margin-top: 2px; }
+/* ── Progress dots ── */
+.round-progress {
+  display: flex; gap: 4px; margin-bottom: 14px;
+  justify-content: center; flex-wrap: wrap;
+}
+.rdot { width: 8px; height: 8px; border-radius: 4px; background: #374151; }
+.rdot.done { background: #10b981; }
+.rdot.current { background: #f59e0b; width: 14px; }
+/* ── Bidding ── */
+.bidder-name {
+  font-size: 26px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.bidder-prompt { text-align: center; color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+.bid-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.bid-btn {
+  background: #1f2937;
+  border: 2px solid #374151;
+  border-radius: 12px;
+  padding: 18px 4px;
+  color: #f9fafb;
+  font-size: 24px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.bid-btn:active { background: #374151; transform: scale(0.95); }
+.bid-btn.board-btn {
+  grid-column: 1 / -1;
+  background: #2d1b4e;
+  border-color: #7c3aed;
+  color: #c4b5fd;
+  font-size: 17px;
+  font-weight: 700;
+  padding: 16px;
+}
+.bid-btn.board-btn:active { background: #3b1f6b; }
+.bids-so-far {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 4px;
+}
+.bids-so-far-label { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+.bid-entry {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid #374151;
+  font-size: 15px;
+}
+.bid-entry:last-child { border-bottom: none; }
+.bid-val { font-weight: 700; color: #f59e0b; }
+.bid-val.board-val { color: #c4b5fd; }
+/* ── Tricks ── */
+.tricks-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.trick-row {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 14px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trick-name { flex: 1; font-size: 16px; font-weight: 600; }
+.trick-badge {
+  font-size: 12px;
+  padding: 4px 9px;
+  background: #111827;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-weight: 600;
+}
+.trick-badge.board { color: #c4b5fd; background: #2d1b4e; }
+.trick-counter { display: flex; align-items: center; gap: 6px; }
+.cnt-btn {
+  background: #374151;
+  border: none;
+  border-radius: 8px;
+  width: 38px; height: 38px;
+  color: #f9fafb;
+  font-size: 22px;
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+}
+.cnt-btn:active { background: #4b5563; }
+.cnt-val { font-size: 22px; font-weight: 800; min-width: 30px; text-align: center; }
+.tricks-total {
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+.tricks-total .ok { color: #10b981; font-weight: 700; }
+.tricks-total .over { color: #ef4444; font-weight: 700; }
+/* ── Results ── */
+.results-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.result-row {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.result-name { flex: 1; font-size: 16px; font-weight: 600; }
+.result-detail { font-size: 12px; color: #9ca3af; }
+.result-delta {
+  font-size: 24px;
+  font-weight: 800;
+  min-width: 62px;
+  text-align: right;
+}
+.pos { color: #10b981; }
+.neg { color: #ef4444; }
+.zero { color: #6b7280; }
+/* ── Scoreboard ── */
+.scoreboard { background: #1f2937; border-radius: 14px; overflow: hidden; margin-bottom: 8px; }
+.score-row {
+  display: flex; align-items: center;
+  padding: 13px 14px;
+  border-bottom: 1px solid #374151;
+  gap: 10px;
+}
+.score-row:last-child { border-bottom: none; }
+.score-rank { font-size: 18px; width: 30px; text-align: center; }
+.score-name { flex: 1; font-size: 16px; font-weight: 600; }
+.score-pts { font-size: 22px; font-weight: 800; min-width: 54px; text-align: right; }
+/* ── Game over ── */
+.winner-box {
+  background: linear-gradient(135deg, #1c1505, #2a1f00);
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.winner-trophy { font-size: 48px; margin-bottom: 8px; }
+.winner-name { font-size: 28px; font-weight: 800; color: #f59e0b; }
+.winner-sub { font-size: 14px; color: #9ca3af; margin-top: 4px; }
+/* ── Section spacer ── */
+.section-gap { height: 16px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const G = {
+  phase: 'setup',
+  players: ['', ''],
+  rounds: [],
+  roundIndex: 0,
+  bids: [],       // [{amount:int, isBoard:bool}]
+  bidIndex: 0,
+  tricks: [],     // [int]
+  totals: [],     // [int] running totals
+  roundType: 'full',
+};
+
+// ─── Round generation ─────────────────────────────────────────────────────────
+function genRounds(type, numPlayers) {
+  const max = Math.min(13, Math.floor(52 / numPlayers));
+  let up = [];
+  if (type === 'odd') {
+    for (let i = 1; i <= max; i += 2) up.push(i);
+  } else {
+    for (let i = 1; i <= max; i++) up.push(i);
+  }
+  if (type === 'full' || type === 'odd') {
+    const down = [...up].reverse().slice(1);
+    return [...up, ...down];
+  }
+  if (type === 'down') return [...up].reverse();
+  return up; // 'up'
+}
+
+// ─── Scoring ──────────────────────────────────────────────────────────────────
+function score(bid, isBoard, tricks, roundMax) {
+  if (isBoard) return tricks === roundMax ? roundMax * 10 : -3;
+  if (tricks === bid) return bid * 3;
+  if (tricks > bid) return (tricks - bid);
+  return -3;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function clr(pos) { return pos > 0 ? 'pos' : pos < 0 ? 'neg' : 'zero'; }
+function sign(n) { return n > 0 ? '+' : ''; }
+
+function roundProgress() {
+  return `<div class="round-progress">${G.rounds.map((_, i) => {
+    let c = 'rdot';
+    if (i < G.roundIndex) c += ' done';
+    else if (i === G.roundIndex) c += ' current';
+    return `<span class="${c}"></span>`;
+  }).join('')}</div>`;
+}
+
+function scoreboard() {
+  const rows = G.players
+    .map((n, i) => ({ n, t: G.totals[i] || 0, i }))
+    .sort((a, b) => b.t - a.t);
+  const medals = ['🥇','🥈','🥉'];
+  return `<div class="scoreboard">${rows.map((p, r) => `
+    <div class="score-row">
+      <div class="score-rank">${medals[r] || (r+1)+'.'}</div>
+      <div class="score-name">${p.n}</div>
+      <div class="score-pts ${clr(p.t)}">${p.t}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ─── Screens ──────────────────────────────────────────────────────────────────
+function renderSetup() {
+  const ps = G.players;
+  return `<div class="screen">
+    <h1>🃏 Back Alley Bridge</h1>
+    <div class="subtitle">Score Tracker</div>
+
+    <div class="section-label">Players</div>
+    <ul class="player-list" id="plist">
+      ${ps.map((p, i) => `<li class="player-item">
+        <input type="text" class="pinput" data-i="${i}" placeholder="Player ${i+1}" value="${esc(p)}" autocomplete="off" autocorrect="off" spellcheck="false">
+        ${ps.length > 2 ? `<button class="remove-btn" data-rm="${i}">×</button>` : ''}
+      </li>`).join('')}
+    </ul>
+    ${ps.length < 8 ? `<button class="add-player-btn" id="addp">+ Add Player</button>` : '<div class="section-gap"></div>'}
+
+    <div class="section-label">Round Style</div>
+    <select class="round-select" id="rtype">
+      <option value="full" ${G.roundType==='full'?'selected':''}>Full (1 → 13 → 1)</option>
+      <option value="odd" ${G.roundType==='odd'?'selected':''}>Odd only (1, 3, 5 … 13 … 5, 3, 1)</option>
+      <option value="up" ${G.roundType==='up'?'selected':''}>Up only (1 → 13)</option>
+      <option value="down" ${G.roundType==='down'?'selected':''}>Down only (13 → 1)</option>
+    </select>
+
+    <div class="scoring-note">
+      <strong>Exact bid:</strong> 3 pts × tricks<br>
+      <strong>Over bid:</strong> 1 pt × extra tricks<br>
+      <strong>Miss (under):</strong> −3 pts<br>
+      <strong>Board (all tricks):</strong> 10 pts × round cards, or −3
+    </div>
+
+    <button class="btn-primary" id="startbtn">Start Game →</button>
+  </div>`;
+}
+
+function renderBid() {
+  const roundMax = G.rounds[G.roundIndex];
+  const nums = Array.from({length: roundMax + 1}, (_, i) => i);
+  const pname = G.players[G.bidIndex];
+
+  const bidsHTML = G.bids.map((b, i) => b != null ? `
+    <div class="bid-entry">
+      <span>${G.players[i]}</span>
+      <span class="bid-val ${b.isBoard ? 'board-val' : ''}">${b.isBoard ? '🎯 BOARD' : b.amount}</span>
+    </div>` : '').join('');
+
+  return `<div class="screen">
+    ${roundProgress()}
+    <div class="round-header">
+      <div class="rh-label">Round ${G.roundIndex+1} of ${G.rounds.length}</div>
+      <div class="rh-num">${roundMax}</div>
+      <div class="rh-sub">card${roundMax!==1?'s':''} this round</div>
+    </div>
+
+    <div class="bidder-name">${esc(pname)}</div>
+    <div class="bidder-prompt">How many tricks will you take?</div>
+
+    <div class="bid-grid">
+      ${nums.map(n => `<button class="bid-btn" data-bid="${n}">${n}</button>`).join('')}
+      <button class="bid-btn board-btn" data-bid="board">🎯 BOARD — all ${roundMax} tricks (10 pts each)</button>
+    </div>
+
+    ${bidsHTML ? `<div class="bids-so-far">
+      <div class="bids-so-far-label">Bids so far</div>${bidsHTML}
+    </div>` : ''}
+  </div>`;
+}
+
+function renderTricks() {
+  const roundMax = G.rounds[G.roundIndex];
+  const total = G.tricks.reduce((s, t) => s + t, 0);
+  const rem = roundMax - total;
+  const remColor = rem === 0 ? 'ok' : rem < 0 ? 'over' : '';
+
+  return `<div class="screen">
+    ${roundProgress()}
+    <div class="round-header">
+      <div class="rh-label">Round ${G.roundIndex+1} — Tricks Taken</div>
+      <div class="rh-num">${roundMax}</div>
+      <div class="rh-sub">total tricks in round</div>
+    </div>
+
+    <div class="tricks-list">
+      ${G.players.map((name, i) => {
+        const b = G.bids[i];
+        return `<div class="trick-row">
+          <div class="trick-name">${esc(name)}</div>
+          <div class="trick-badge ${b.isBoard?'board':''}">${b.isBoard ? '🎯 BOARD' : 'bid '+b.amount}</div>
+          <div class="trick-counter">
+            <button class="cnt-btn" data-dec="${i}">−</button>
+            <div class="cnt-val" id="tv${i}">${G.tricks[i]}</div>
+            <button class="cnt-btn" data-inc="${i}">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="tricks-total">
+      <span class="${remColor}">${total}</span> / ${roundMax} tricks assigned
+      ${rem === 0 ? ' ✓' : rem < 0 ? ' — too many!' : ` — ${rem} remaining`}
+    </div>
+
+    <button class="btn-primary" id="calcbtn" ${total !== roundMax ? 'disabled' : ''}>
+      Calculate Scores →
+    </button>
+  </div>`;
+}
+
+function renderResults() {
+  const roundMax = G.rounds[G.roundIndex];
+  const isLast = G.roundIndex >= G.rounds.length - 1;
+
+  const rows = G.players.map((name, i) => {
+    const b = G.bids[i];
+    const t = G.tricks[i];
+    const d = score(b.amount, b.isBoard, t, roundMax);
+    const detail = b.isBoard ? `Board → ${t}/${roundMax}` : `bid ${b.amount}, got ${t}`;
+    return { name, d, detail };
+  });
+
+  return `<div class="screen">
+    ${roundProgress()}
+    <h1 style="font-size:20px;margin-bottom:4px;">Round ${G.roundIndex+1} Results</h1>
+    <div class="subtitle" style="margin-bottom:16px;">Round ${G.roundIndex+1} of ${G.rounds.length}</div>
+
+    <div class="results-list">
+      ${rows.map(r => `<div class="result-row">
+        <div>
+          <div class="result-name">${esc(r.name)}</div>
+          <div class="result-detail">${r.detail}</div>
+        </div>
+        <div class="result-delta ${clr(r.d)}">${sign(r.d)}${r.d}</div>
+      </div>`).join('')}
+    </div>
+
+    <div class="section-label" style="margin-bottom:10px;">Standings</div>
+    ${scoreboard()}
+
+    <button class="btn-primary" id="nextbtn" style="margin-top:20px;">
+      ${isLast ? '🏆 See Final Results' : 'Next Round →'}
+    </button>
+  </div>`;
+}
+
+function renderGameOver() {
+  const sorted = G.players
+    .map((n, i) => ({ n, t: G.totals[i] || 0 }))
+    .sort((a, b) => b.t - a.t);
+
+  return `<div class="screen">
+    <div class="winner-box">
+      <div class="winner-trophy">🏆</div>
+      <div class="winner-name">${esc(sorted[0].n)}</div>
+      <div class="winner-sub">wins with ${sorted[0].t} points!</div>
+    </div>
+
+    <div class="section-label" style="margin-bottom:10px;">Final Standings</div>
+    ${scoreboard()}
+
+    <button class="btn-primary" id="newgame" style="margin-top:24px;">Play Again</button>
+    <button class="btn-secondary" id="sameplayers">Same Players, New Game</button>
+  </div>`;
+}
+
+// ─── Render + bind ────────────────────────────────────────────────────────────
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function syncInputs() {
+  document.querySelectorAll('.pinput').forEach(el => {
+    G.players[+el.dataset.i] = el.value.trim();
+  });
+  const sel = document.getElementById('rtype');
+  if (sel) G.roundType = sel.value;
+}
+
+function render() {
+  const app = document.getElementById('app');
+  const screens = { setup: renderSetup, bid: renderBid, tricks: renderTricks, results: renderResults, gameover: renderGameOver };
+  app.innerHTML = (screens[G.phase] || renderSetup)();
+  bind();
+}
+
+function bind() {
+  // Setup
+  document.getElementById('addp')?.addEventListener('click', () => {
+    syncInputs();
+    G.players.push('');
+    render();
+  });
+
+  document.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => {
+    syncInputs();
+    G.players.splice(+b.dataset.rm, 1);
+    render();
+  }));
+
+  document.getElementById('startbtn')?.addEventListener('click', () => {
+    syncInputs();
+    const names = G.players.filter(p => p);
+    if (names.length < 2) { alert('Add at least 2 players!'); return; }
+    G.players = names;
+    G.rounds = genRounds(G.roundType, names.length);
+    G.roundIndex = 0;
+    G.bids = Array(names.length).fill(null);
+    G.bidIndex = 0;
+    G.tricks = Array(names.length).fill(0);
+    G.totals = Array(names.length).fill(0);
+    G.phase = 'bid';
+    render();
+  });
+
+  // Bidding
+  document.querySelectorAll('[data-bid]').forEach(b => b.addEventListener('click', () => {
+    const val = b.dataset.bid;
+    const isBoard = val === 'board';
+    const amount = isBoard ? G.rounds[G.roundIndex] : +val;
+    G.bids[G.bidIndex] = { amount, isBoard };
+    G.bidIndex++;
+    if (G.bidIndex >= G.players.length) {
+      G.tricks = Array(G.players.length).fill(0);
+      G.bidIndex = 0;
+      G.phase = 'tricks';
+    }
+    render();
+  }));
+
+  // Trick counters
+  document.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.inc;
+    const total = G.tricks.reduce((s,t)=>s+t,0);
+    if (total < G.rounds[G.roundIndex]) { G.tricks[i]++; reRenderTricks(); }
+  }));
+
+  document.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.dec;
+    if (G.tricks[i] > 0) { G.tricks[i]--; reRenderTricks(); }
+  }));
+
+  // Calc scores
+  document.getElementById('calcbtn')?.addEventListener('click', () => {
+    const roundMax = G.rounds[G.roundIndex];
+    G.players.forEach((_, i) => {
+      const b = G.bids[i];
+      G.totals[i] += score(b.amount, b.isBoard, G.tricks[i], roundMax);
+    });
+    G.phase = 'results';
+    render();
+  });
+
+  // Next round
+  document.getElementById('nextbtn')?.addEventListener('click', () => {
+    if (G.roundIndex >= G.rounds.length - 1) {
+      G.phase = 'gameover';
+    } else {
+      G.roundIndex++;
+      G.bids = Array(G.players.length).fill(null);
+      G.bidIndex = 0;
+      G.tricks = Array(G.players.length).fill(0);
+      G.phase = 'bid';
+    }
+    render();
+  });
+
+  // New game
+  document.getElementById('newgame')?.addEventListener('click', () => {
+    G.players = ['', ''];
+    G.phase = 'setup';
+    render();
+  });
+
+  document.getElementById('sameplayers')?.addEventListener('click', () => {
+    const names = [...G.players];
+    G.rounds = genRounds(G.roundType, names.length);
+    G.roundIndex = 0;
+    G.bids = Array(names.length).fill(null);
+    G.bidIndex = 0;
+    G.tricks = Array(names.length).fill(0);
+    G.totals = Array(names.length).fill(0);
+    G.phase = 'bid';
+    render();
+  });
+}
+
+// Lightweight re-render for trick counter (avoids full redraw flash)
+function reRenderTricks() {
+  const roundMax = G.rounds[G.roundIndex];
+  const total = G.tricks.reduce((s,t)=>s+t,0);
+  const rem = roundMax - total;
+
+  G.tricks.forEach((t, i) => {
+    const el = document.getElementById(`tv${i}`);
+    if (el) el.textContent = t;
+  });
+
+  const calcbtn = document.getElementById('calcbtn');
+  if (calcbtn) calcbtn.disabled = total !== roundMax;
+
+  const ttEl = document.querySelector('.tricks-total');
+  if (ttEl) {
+    const remColor = rem === 0 ? 'ok' : rem < 0 ? 'over' : '';
+    ttEl.innerHTML = `<span class="${remColor}">${total}</span> / ${roundMax} tricks assigned${rem===0?' ✓':rem<0?' — too many!':\` — ${rem} remaining\`}`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
