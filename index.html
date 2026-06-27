@@ -294,6 +294,24 @@ h1 {
 .winner-trophy { font-size: 48px; margin-bottom: 8px; }
 .winner-name { font-size: 28px; font-weight: 800; color: #f59e0b; }
 .winner-sub { font-size: 14px; color: #9ca3af; margin-top: 4px; }
+/* ── Bid list ── */
+.bid-list { display: flex; flex-direction: column; gap: 2px; }
+.bid-list-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px;
+  background: #1f2937;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.bid-list-row.done { opacity: 0.7; }
+.bid-list-row.active { border: 2px solid #f59e0b; }
+.bl-name { font-size: 16px; font-weight: 600; }
+.bl-bid { font-size: 16px; font-weight: 700; }
+.bl-bid.empty { color: #6b7280; font-weight: 400; font-style: italic; }
+.bl-bid.picked { color: #f59e0b; }
+.bl-bid.board-val { color: #c4b5fd; }
+.bid-picker { background: #111827; border-radius: 0 0 12px 12px; padding: 10px 10px 14px; margin-top: -10px; margin-bottom: 6px; }
+
 /* ── Section spacer ── */
 .section-gap { height: 16px; }
 </style>
@@ -309,10 +327,11 @@ const G = {
   players: ['', ''],
   rounds: [],
   roundIndex: 0,
-  bids: [],       // [{amount:int, isBoard:bool}]
+  dealerIndex: 0,  // dealer rotates each round
+  bids: [],        // [{amount:int, isBoard:bool}]
   bidIndex: 0,
-  tricks: [],     // [int]
-  totals: [],     // [int] running totals
+  tricks: [],      // [int]
+  totals: [],      // [int] running totals
   roundType: 'full',
 };
 
@@ -336,9 +355,8 @@ function genRounds(type, numPlayers) {
 // ─── Scoring ──────────────────────────────────────────────────────────────────
 function score(bid, isBoard, tricks, roundMax) {
   if (isBoard) return tricks === roundMax ? roundMax * 10 : -3;
-  if (tricks === bid) return bid * 3;
-  if (tricks > bid) return (tricks - bid);
-  return -3;
+  if (tricks >= bid) return bid * 3 + (tricks - bid); // exact: bid×3; over: bid×3 + extras×1
+  return -3; // under
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -393,8 +411,8 @@ function renderSetup() {
     </select>
 
     <div class="scoring-note">
-      <strong>Exact bid:</strong> 3 pts × tricks<br>
-      <strong>Over bid:</strong> 1 pt × extra tricks<br>
+      <strong>Exact bid:</strong> 3 pts × bid &nbsp;(bid 2, get 2 = 6)<br>
+      <strong>Over bid:</strong> 3 pts × bid + 1 pt × extras &nbsp;(bid 2, get 3 = 7)<br>
       <strong>Miss (under):</strong> −3 pts<br>
       <strong>Board (all tricks):</strong> 10 pts × round cards, or −3
     </div>
@@ -406,33 +424,43 @@ function renderSetup() {
 function renderBid() {
   const roundMax = G.rounds[G.roundIndex];
   const nums = Array.from({length: roundMax + 1}, (_, i) => i);
-  const pname = G.players[G.bidIndex];
+  const firstBidder = (G.dealerIndex + 1) % G.players.length;
+  const dealer = G.players[G.dealerIndex];
+  const allBid = G.bids.every(b => b !== null);
 
-  const bidsHTML = G.bids.map((b, i) => b != null ? `
-    <div class="bid-entry">
-      <span>${G.players[i]}</span>
-      <span class="bid-val ${b.isBoard ? 'board-val' : ''}">${b.isBoard ? '🎯 BOARD' : b.amount}</span>
-    </div>` : '').join('');
+  // Reorder players so first bidder is at top
+  const orderedPlayers = G.players.map((_, i) => (firstBidder + i) % G.players.length);
 
   return `<div class="screen">
     ${roundProgress()}
     <div class="round-header">
-      <div class="rh-label">Round ${G.roundIndex+1} of ${G.rounds.length}</div>
+      <div class="rh-label">Round ${G.roundIndex+1} of ${G.rounds.length} &nbsp;·&nbsp; Dealer: ${esc(dealer)}</div>
       <div class="rh-num">${roundMax}</div>
       <div class="rh-sub">card${roundMax!==1?'s':''} this round</div>
     </div>
 
-    <div class="bidder-name">${esc(pname)}</div>
-    <div class="bidder-prompt">How many tricks will you take?</div>
-
-    <div class="bid-grid">
-      ${nums.map(n => `<button class="bid-btn" data-bid="${n}">${n}</button>`).join('')}
-      <button class="bid-btn board-btn" data-bid="board">🎯 BOARD — all ${roundMax} tricks (10 pts each)</button>
+    <div class="bid-list">
+      ${orderedPlayers.map(i => {
+        const b = G.bids[i];
+        const isActive = b === null;
+        return `<div class="bid-list-row ${isActive ? 'active' : 'done'}" data-player="${i}">
+          <div class="bl-name">${esc(G.players[i])}</div>
+          <div class="bl-bid ${b === null ? 'empty' : b.isBoard ? 'board-val' : 'picked'}">
+            ${b === null ? 'tap to bid' : b.isBoard ? '🎯 BOARD' : b.amount}
+          </div>
+        </div>
+        ${isActive ? `<div class="bid-picker" data-picker="${i}">
+          <div class="bid-grid">
+            ${nums.map(n => `<button class="bid-btn" data-bid="${n}" data-for="${i}">${n}</button>`).join('')}
+            <button class="bid-btn board-btn" data-bid="board" data-for="${i}">🎯 BOARD — all ${roundMax} (10 pts each)</button>
+          </div>
+        </div>` : ''}`;
+      }).join('')}
     </div>
 
-    ${bidsHTML ? `<div class="bids-so-far">
-      <div class="bids-so-far-label">Bids so far</div>${bidsHTML}
-    </div>` : ''}
+    <button class="btn-primary" id="confirmbids" style="margin-top:16px;" ${allBid ? '' : 'disabled'}>
+      Start Round →
+    </button>
   </div>`;
 }
 
@@ -573,6 +601,7 @@ function bind() {
     G.players = names;
     G.rounds = genRounds(G.roundType, names.length);
     G.roundIndex = 0;
+    G.dealerIndex = 0;
     G.bids = Array(names.length).fill(null);
     G.bidIndex = 0;
     G.tricks = Array(names.length).fill(0);
@@ -584,13 +613,12 @@ function bind() {
   // Bidding
   document.querySelectorAll('[data-bid]').forEach(b => b.addEventListener('click', () => {
     const val = b.dataset.bid;
+    const forPlayer = +b.dataset.for;
     const isBoard = val === 'board';
     const amount = isBoard ? G.rounds[G.roundIndex] : +val;
-    G.bids[G.bidIndex] = { amount, isBoard };
-    G.bidIndex++;
-    if (G.bidIndex >= G.players.length) {
+    G.bids[forPlayer] = { amount, isBoard };
+    if (G.bids.every(b => b !== null)) {
       G.tricks = Array(G.players.length).fill(0);
-      G.bidIndex = 0;
       G.phase = 'tricks';
     }
     render();
@@ -625,6 +653,7 @@ function bind() {
       G.phase = 'gameover';
     } else {
       G.roundIndex++;
+      G.dealerIndex = (G.dealerIndex + 1) % G.players.length;
       G.bids = Array(G.players.length).fill(null);
       G.bidIndex = 0;
       G.tricks = Array(G.players.length).fill(0);
@@ -644,6 +673,7 @@ function bind() {
     const names = [...G.players];
     G.rounds = genRounds(G.roundType, names.length);
     G.roundIndex = 0;
+    G.dealerIndex = 0;
     G.bids = Array(names.length).fill(null);
     G.bidIndex = 0;
     G.tricks = Array(names.length).fill(0);
