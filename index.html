@@ -359,7 +359,7 @@ function defaultMax(numPlayers) {
 
 // ─── Scoring ──────────────────────────────────────────────────────────────────
 function score(bid, isBoard, tricks, roundMax) {
-  if (isBoard) return tricks === roundMax ? roundMax * 10 : -3;
+  if (isBoard) return tricks === roundMax ? roundMax * 10 : -(roundMax * 10);
   if (tricks >= bid) return bid * 3 + (tricks - bid); // exact: bid×3; over: bid×3 + extras×1
   return -(bid * 3); // under: lose bid×3 (bid 2, miss = −6)
 }
@@ -429,7 +429,7 @@ function renderSetup() {
       <strong>Exact bid:</strong> 3 pts × bid &nbsp;(bid 2, get 2 = 6)<br>
       <strong>Over bid:</strong> 3 pts × bid + 1 pt × extras &nbsp;(bid 2, get 3 = 7)<br>
       <strong>Miss (under):</strong> −3 pts × bid &nbsp;(bid 2, miss = −6)<br>
-      <strong>Board (all tricks):</strong> 10 pts × round cards, or −3
+      <strong>Board (all tricks):</strong> ±10 pts × round cards &nbsp;(win or lose the same)
     </div>
 
     <button class="btn-primary" id="startbtn">Start Game →</button>
