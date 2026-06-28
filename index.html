@@ -346,7 +346,7 @@ function genRounds(type, max) {
     for (let i = 1; i <= max; i++) up.push(i);
   }
   if (type === 'full' || type === 'odd') {
-    const down = [...up].reverse().slice(1);
+    const down = [...up].reverse(); // peak plays twice (e.g. ...13, 13, 12...)
     return [...up, ...down];
   }
   if (type === 'down') return [...up].reverse();
