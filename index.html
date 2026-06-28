@@ -334,6 +334,7 @@ const G = {
   totals: [],      // [int] running totals
   roundType: 'full',
   maxCards: 13,
+  history: [], // [{totals, roundIndex, dealerIndex}] for undo
 };
 
 // ─── Round generation ─────────────────────────────────────────────────────────
@@ -360,7 +361,7 @@ function defaultMax(numPlayers) {
 function score(bid, isBoard, tricks, roundMax) {
   if (isBoard) return tricks === roundMax ? roundMax * 10 : -3;
   if (tricks >= bid) return bid * 3 + (tricks - bid); // exact: bid×3; over: bid×3 + extras×1
-  return -3; // under
+  return -(bid * 3); // under: lose bid×3 (bid 2, miss = −6)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -427,7 +428,7 @@ function renderSetup() {
     <div class="scoring-note">
       <strong>Exact bid:</strong> 3 pts × bid &nbsp;(bid 2, get 2 = 6)<br>
       <strong>Over bid:</strong> 3 pts × bid + 1 pt × extras &nbsp;(bid 2, get 3 = 7)<br>
-      <strong>Miss (under):</strong> −3 pts<br>
+      <strong>Miss (under):</strong> −3 pts × bid &nbsp;(bid 2, miss = −6)<br>
       <strong>Board (all tricks):</strong> 10 pts × round cards, or −3
     </div>
 
@@ -472,9 +473,10 @@ function renderBid() {
       }).join('')}
     </div>
 
-    <button class="btn-primary" id="confirmbids" style="margin-top:16px;" ${allBid ? '' : 'disabled'}>
-      Start Round →
-    </button>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn-secondary" id="misdealbtn" style="flex:1;">🔄 Misdeal</button>
+      <button class="btn-primary" id="confirmbids" style="flex:2;" ${allBid ? '' : 'disabled'}>Start Round →</button>
+    </div>
   </div>`;
 }
 
@@ -512,9 +514,10 @@ function renderTricks() {
       ${rem === 0 ? ' ✓' : rem < 0 ? ' — too many!' : ` — ${rem} remaining`}
     </div>
 
-    <button class="btn-primary" id="calcbtn" ${total !== roundMax ? 'disabled' : ''}>
-      Calculate Scores →
-    </button>
+    <div style="display:flex;gap:10px;margin-top:10px;">
+      <button class="btn-secondary" id="misdealbtn" style="flex:1;">🔄 Misdeal</button>
+      <button class="btn-primary" id="calcbtn" style="flex:2;" ${total !== roundMax ? 'disabled' : ''}>Calculate Scores →</button>
+    </div>
   </div>`;
 }
 
@@ -548,7 +551,8 @@ function renderResults() {
     <div class="section-label" style="margin-bottom:10px;">Standings</div>
     ${scoreboard()}
 
-    <button class="btn-primary" id="nextbtn" style="margin-top:20px;">
+    <button class="btn-secondary" id="undobtn" style="margin-top:12px;width:100%;">↩️ Undo / Misdeal this round</button>
+    <button class="btn-primary" id="nextbtn" style="margin-top:10px;">
       ${isLast ? '🏆 See Final Results' : 'Next Round →'}
     </button>
   </div>`;
@@ -671,11 +675,37 @@ function bind() {
   // Calc scores
   document.getElementById('calcbtn')?.addEventListener('click', () => {
     const roundMax = G.rounds[G.roundIndex];
+    // Save snapshot for undo
+    G.history.push({ totals: [...G.totals], roundIndex: G.roundIndex, dealerIndex: G.dealerIndex });
     G.players.forEach((_, i) => {
       const b = G.bids[i];
       G.totals[i] += score(b.amount, b.isBoard, G.tricks[i], roundMax);
     });
     G.phase = 'results';
+    render();
+  });
+
+  // Misdeal — restart current round (bid/tricks screen)
+  document.getElementById('misdealbtn')?.addEventListener('click', () => {
+    if (!confirm('Misdeal? This will restart the current round.')) return;
+    G.bids = Array(G.players.length).fill(null);
+    G.tricks = Array(G.players.length).fill(0);
+    G.phase = 'bid';
+    render();
+  });
+
+  // Undo — roll back scores and restart current round (results screen)
+  document.getElementById('undobtn')?.addEventListener('click', () => {
+    if (!confirm('Undo this round? Scores will be rolled back.')) return;
+    if (G.history.length > 0) {
+      const snap = G.history.pop();
+      G.totals = snap.totals;
+      G.roundIndex = snap.roundIndex;
+      G.dealerIndex = snap.dealerIndex;
+    }
+    G.bids = Array(G.players.length).fill(null);
+    G.tricks = Array(G.players.length).fill(0);
+    G.phase = 'bid';
     render();
   });
 
